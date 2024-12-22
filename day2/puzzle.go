@@ -90,12 +90,14 @@ same as previous, but
 if excluding one level makes it safe, whole report is safe
 edge cases: first and last level in report are tricky to handle
 
-idea: if not safe, truncate from start and/or end to check if any of those is safe
-if not, execute modified algo
-how to not do too many checks tho
-i could probably do like in first algo, but not return immediatelly, instead count cases when order is wrong
-or diff to big; if its only one, its fine;
-but would have to compare order/diff ommiting one value, so holding 3 in memory
+if not safe, truncate from start and/or end to check if any of those is safe
+keep count of incorrect elements, > 1 and unsafe
+if (first == second) removing one of those would have to be solution
+then iterate over and check if diff is in range and elements keep order
+if not, check if ommiting current element would keep order/diff was ok
+if not, check if removing previous element would make report safe
+if not unsafe
+else errorCounter += 1
 */
 func isReportConditionalySafe(report []int) bool {
 
@@ -153,6 +155,7 @@ func isReportConditionalySafe(report []int) bool {
 				return false
 			}
 
+			// next element was already checked
 			i += 1
 		}
 	}
