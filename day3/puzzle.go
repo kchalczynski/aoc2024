@@ -16,7 +16,18 @@ func main() {
 
 	var sum int = calculateSumOfMultiplications(operandTupleList)
 
-	fmt.Print(sum)
+	fmt.Println(sum)
+
+	/*  part 2
+	exlude anything after don't until do appears etc.
+	`don't` turns of matching, `do` turns it back on
+	*/
+
+	operandTupleList2 := cleanInput(cleanInputBefore(inputContent))
+	println(cleanInputBefore(inputContent))
+	var sum2 int = calculateSumOfMultiplications(operandTupleList2)
+
+	fmt.Println(sum2)
 
 }
 
@@ -67,12 +78,20 @@ func cleanInput(content string) [][]int {
 	return operandArray
 }
 
+func cleanInputBefore(content string) string {
+	pattern := regexp.MustCompile(`(don't\(\)+.*?(?:do\(\)))|(don't\(\)+.*)`)
+
+	result := pattern.ReplaceAllString(content, "")
+	return result
+
+}
+
 func calculateSumOfMultiplications(operands [][]int) int {
 
 	var sum int = 0
 
 	for i := range operands {
-		result := operands[i][0] * operands[i][1] 
+		result := operands[i][0] * operands[i][1]
 		sum += result
 	}
 
