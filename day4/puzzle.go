@@ -73,50 +73,50 @@ func searchWordsInMatrix(input [][]string, searchPhrase string) int {
 
 			// n
 			if canGoUp {
-				if checkN(input, searchPhrase, i, j) {
+				if checkDirection("N", input, searchPhrase, i, j) {
 					count++
 				}
 			}
 
 			// ne
 			if canGoUp && canGoRight {
-				if checkNE(input, searchPhrase, i, j) {
+				if checkDirection("NE", input, searchPhrase, i, j) {
 					count++
 				}
 			}
 			// e
 			if canGoRight {
-				if checkE(input, searchPhrase, i, j) {
+				if checkDirection("E", input, searchPhrase, i, j) {
 					count++
 				}
 			}
 			// se
 			if canGoDown && canGoRight {
-				if checkSE(input, searchPhrase, i, j) {
+				if checkDirection("SE", input, searchPhrase, i, j) {
 					count++
 				}
 			}
 			// s
 			if canGoDown {
-				if checkS(input, searchPhrase, i, j) {
+				if checkDirection("S", input, searchPhrase, i, j) {
 					count++
 				}
 			}
 			// sw
 			if canGoDown && canGoLeft {
-				if checkSW(input, searchPhrase, i, j) {
+				if checkDirection("SW", input, searchPhrase, i, j) {
 					count++
 				}
 			}
 			// w
 			if canGoLeft {
-				if checkW(input, searchPhrase, i, j) {
+				if checkDirection("W", input, searchPhrase, i, j) {
 					count++
 				}
 			}
 			// nw
 			if canGoUp && canGoLeft {
-				if checkNW(input, searchPhrase, i, j) {
+				if checkDirection("NW", input, searchPhrase, i, j) {
 					count++
 				}
 			}
@@ -127,77 +127,41 @@ func searchWordsInMatrix(input [][]string, searchPhrase string) int {
 	return count
 }
 
-func checkN(input [][]string, searchPhrase string, row int, column int) bool {
+func checkDirection(direction string, input [][]string, searchPhrase string, row int, column int) bool {
+
+	var dir_x, dir_y int = 0, 0
+
+	switch {
+	case direction == "N":
+		dir_x = -1
+	case direction == "NE":
+		dir_x = -1
+		dir_y = 1
+	case direction == "E":
+		dir_y = 1
+	case direction == "SE":
+		dir_x = 1
+		dir_y = 1
+	case direction == "S":
+		dir_x = 1
+	case direction == "SW":
+		dir_x = 1
+		dir_y = -1
+	case direction == "W":
+		dir_y = -1
+	case direction == "NW":
+		dir_x = -1
+		dir_y = -1
+	}
+
 	for i, el := range string(searchPhrase) {
-		if input[row-i][column] != string(el) {
+		if input[row+i*dir_x][column+i*dir_y] != string(el) {
 			return false
 		}
 	}
 	return true
 }
 
-func checkNE(input [][]string, searchPhrase string, row int, column int) bool {
-	for i, el := range string(searchPhrase) {
-		if input[row-i][column+i] != string(el) {
-			return false
-		}
-	}
-	return true
-}
-
-func checkE(input [][]string, searchPhrase string, row int, column int) bool {
-	for i, el := range string(searchPhrase) {
-		if input[row][column+i] != string(el) {
-			return false
-		}
-	}
-	return true
-}
-
-func checkSE(input [][]string, searchPhrase string, row int, column int) bool {
-	for i, el := range string(searchPhrase) {
-		if input[row+i][column+i] != string(el) {
-			return false
-		}
-	}
-	return true
-}
-
-func checkS(input [][]string, searchPhrase string, row int, column int) bool {
-	for i, el := range string(searchPhrase) {
-		if input[row+i][column] != string(el) {
-			return false
-		}
-	}
-	return true
-}
-
-func checkSW(input [][]string, searchPhrase string, row int, column int) bool {
-	for i, el := range string(searchPhrase) {
-		if input[row+i][column-i] != string(el) {
-			return false
-		}
-	}
-	return true
-}
-
-func checkW(input [][]string, searchPhrase string, row int, column int) bool {
-	for i, el := range string(searchPhrase) {
-		if input[row][column-i] != string(el) {
-			return false
-		}
-	}
-	return true
-}
-
-func checkNW(input [][]string, searchPhrase string, row int, column int) bool {
-	for i, el := range string(searchPhrase) {
-		if input[row-i][column-i] != string(el) {
-			return false
-		}
-	}
-	return true
-}
 
 func readFile(fileName string) (string, int) {
 	file, err := os.Open(fileName)
