@@ -18,15 +18,15 @@ func main() {
 	inputContent, inputLinesCount = readFile(inputFile)
 
 	// fmt.Println(inputContent, inputLinesCount)
-	var wordCount int = countWordOccurence(inputContent, inputLinesCount, searchPhrase)
+	var wordCount int = countWordOccurrence(inputContent, inputLinesCount, searchPhrase)
 
 	fmt.Println("Word `", searchPhrase, "` appears: ", wordCount, " times")
-	var countP2 int = countXShapedMASOccurence(inputContent, inputLinesCount)
+	var countP2 int = countXShapedMASOccurrence(inputContent, inputLinesCount)
 
 	fmt.Println("MAS IN SHAPE OF X CROSS appears: ", countP2, " times")
 }
 
-func countWordOccurence(input string, linesCount int, searchPhrase string) int {
+func countWordOccurrence(input string, linesCount int, searchPhrase string) int {
 
 	letterMatrix := readContentIntoMatrix(input, linesCount)
 
@@ -35,7 +35,7 @@ func countWordOccurence(input string, linesCount int, searchPhrase string) int {
 	return count
 }
 
-func countXShapedMASOccurence(input string, linesCount int) int {
+func countXShapedMASOccurrence(input string, linesCount int) int {
 
 	letterMatrix := readContentIntoMatrix(input, linesCount)
 
@@ -230,5 +230,4 @@ func readFile(fileName string) (string, int) {
 	}
 
 	return strings.TrimSuffix(content, "\n"), lineCount
-
 }
