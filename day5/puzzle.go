@@ -10,20 +10,24 @@ import (
 	"strings"
 )
 
+import "github.com/kr/pretty"
+
 func main() {
 
-	var inputFile string = "input.txt"
+	inputFile := "./input.txt"
 	rules, pages := readFile(inputFile)
+	pageOrder := parseRulesToMap(rules)
 
-	pageOrder := parseRules(rules)
-	correctPages := validatePages(pages, pageOrder)
+	correctPages := validatePagesFromMap(pages, pageOrder)
 
-	fmt.Println(pageOrder)
+	pretty.Println(pageOrder)
 	fmt.Println("---------------------------")
-	fmt.Println(correctPages)
+	pretty.Println(correctPages)
+
+	fmt.Println(sumMiddleElements(pages, correctPages))
 }
 
-func validatePages(pages [][]int, pageOrder []int) []int {
+/*func validatePages(pages [][]int, pageOrder []int) []int {
 	var correctPages []int
 
 	for i, page := range pages {
@@ -32,9 +36,9 @@ func validatePages(pages [][]int, pageOrder []int) []int {
 	}
 
 	return correctPages
-}
+}*/
 
-func validatePage(page []int, pageOrder []int) bool {
+/*func validatePage(page []int, pageOrder []int) bool {
 	for j := 1; j < len(page); j++ {
 
 		if !(slices.Index(pageOrder, page[j]) > slices.Index(pageOrder, page[j-1])) {
@@ -42,6 +46,56 @@ func validatePage(page []int, pageOrder []int) bool {
 		}
 	}
 	return true
+}*/
+
+func validatePagesFromMap(pages [][]int, pageOrder map[int][]int) []int {
+
+	correctPages := make([]int, 0)
+
+	for i, page := range pages {
+		if validatePage(page, pageOrder) {
+			correctPages = append(correctPages, i)
+		}
+	}
+
+	return correctPages
+}
+
+func validatePage(page []int, pageOrder map[int][]int) bool {
+	for i := 0; i < len(page); i++ {
+		beforePages := pageOrder[page[i]]
+		for j := i - 1; j >= 0; j-- {
+			if slices.Contains(beforePages, page[j]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func sumMiddleElements(pages [][]int, correctPages []int) int {
+	var sum = 0
+	for _, page := range correctPages {
+		sum += pages[page][len(pages[page])/2]
+	}
+	return sum
+}
+
+func parseRulesToMap(rules []OrderPair) map[int][]int {
+	rulesDict := make(map[int][]int)
+
+	for _, pair := range rules {
+		beforePages, ok := rulesDict[pair.page]
+		if !ok {
+			beforePages = make([]int, 0)
+			beforePages = append(beforePages, pair.beforePage)
+			rulesDict[pair.page] = beforePages
+		} else {
+			beforePages = append(beforePages, pair.beforePage)
+			rulesDict[pair.page] = beforePages
+		}
+	}
+	return rulesDict
 }
 
 func parseRules(rules []OrderPair) []int {
