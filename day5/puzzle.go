@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cmp"
 	"fmt"
 	"os"
 	"regexp"
@@ -15,28 +16,43 @@ import "github.com/kr/pretty"
 func main() {
 
 	inputFile := "./input.txt"
+	outputFile, err := os.Create("./output.txt")
+	if err != nil {
+		fmt.Println("Failed to create file: ", err)
+		return
+	}
+	defer outputFile.Close()
+
 	rules, pages := readFile(inputFile)
 	pageOrder := parseRulesToMap(rules)
 
-	correctPages := validatePagesFromMap(pages, pageOrder)
+	correctPages, incorrectPages := validatePagesFromMap(pages, pageOrder)
 
 	pretty.Println(pageOrder)
 	fmt.Println("---------------------------")
 	pretty.Println(correctPages)
 
 	fmt.Println(sumMiddleElements(pages, correctPages))
-}
+	fmt.Println("---------------------------")
 
-/*func validatePages(pages [][]int, pageOrder []int) []int {
-	var correctPages []int
-
-	for i, page := range pages {
-		validatePage(page, pageOrder)
-		correctPages = append(correctPages, i)
+	for _, page := range incorrectPages {
+		fmt.Println(page, ":", pages[page])
 	}
 
-	return correctPages
-}*/
+	/*outputFile.WriteString(pretty.Sprint(pageOrder))
+	outputFile.WriteString(fmt.Sprintln("---------------------------"))
+	outputFile.WriteString(pretty.Sprint(correctPages))
+
+	outputFile.WriteString(fmt.Sprintln(sumMiddleElements(pages, correctPages)))
+	outputFile.WriteString(fmt.Sprintln("---------------------------"))
+
+	for _, page := range incorrectPages {
+		outputFile.WriteString(fmt.Sprintln(page, ":", pages[page]))
+	}*/
+
+	fmt.Println(sumMiddleElements2(fixIncorrectUpdates(incorrectPages, pages, pageOrder)))
+
+}
 
 /*func validatePage(page []int, pageOrder []int) bool {
 	for j := 1; j < len(page); j++ {
@@ -48,22 +64,26 @@ func main() {
 	return true
 }*/
 
-func validatePagesFromMap(pages [][]int, pageOrder map[int][]int) []int {
+func validatePagesFromMap(pages [][]int, pageOrder map[int][]int) ([]int, []int) {
 
 	correctPages := make([]int, 0)
+	incorrectPages := make([]int, 0)
 
 	for i, page := range pages {
-		if validatePage(page, pageOrder) {
+		rulesForUpdate := filterRulesByPagesInUpdate(page, pageOrder)
+		if validatePage(page, rulesForUpdate) {
 			correctPages = append(correctPages, i)
+		} else {
+			incorrectPages = append(incorrectPages, i)
 		}
 	}
 
-	return correctPages
+	return correctPages, incorrectPages
 }
 
-func validatePage(page []int, pageOrder map[int][]int) bool {
+func validatePage(page []int, rulesForUpdate map[int][]int) bool {
 	for i := 0; i < len(page); i++ {
-		beforePages := pageOrder[page[i]]
+		beforePages := rulesForUpdate[page[i]]
 		for j := i - 1; j >= 0; j-- {
 			if slices.Contains(beforePages, page[j]) {
 				return false
@@ -73,10 +93,73 @@ func validatePage(page []int, pageOrder map[int][]int) bool {
 	return true
 }
 
+func filterRulesByPagesInUpdate(page []int, pageOrder map[int][]int) map[int][]int {
+	filteredRules := make(map[int][]int)
+	for i := 0; i < len(page); i++ {
+
+		filteredRules[page[i]] = getIntArrayIntersection(page, pageOrder[page[i]])
+		fmt.Println(page)
+		pretty.Println(filteredRules)
+	}
+
+	return filteredRules
+}
+
+func fixIncorrectUpdates(incorrectPages []int, updates [][]int, pageOrder map[int][]int) [][]int {
+	sortedPages := make([][]int, 0)
+	for _, page := range incorrectPages {
+		rulesForPage := convertRulesToOrder(filterRulesByPagesInUpdate(updates[page], pageOrder))
+		sortedPage := sortPagesInUpdate(updates[page], rulesForPage)
+		sortedPages = append(sortedPages, sortedPage)
+	}
+	return sortedPages
+}
+
+func convertRulesToOrder(rulesForUpdate map[int][]int) map[int]int {
+	rulesPerPageQuantity := make(map[int]int)
+	for pageNum, pageRules := range rulesForUpdate {
+		rulesPerPageQuantity[pageNum] = len(pageRules)
+	}
+	return rulesPerPageQuantity
+}
+
+func sortPagesInUpdate(update []int, rulesPerPage map[int]int) []int {
+	updateSorted := update
+	slices.SortFunc(updateSorted, func(i, j int) int {
+		return cmp.Compare(rulesPerPage[i], rulesPerPage[j])
+	})
+
+	return updateSorted
+}
+
+func getIntArrayIntersection(page []int, beforePages []int) []int {
+	var result []int
+
+	set := make(map[int]struct{})
+	for _, pageNum := range page {
+		set[pageNum] = struct{}{}
+	}
+
+	for _, pageNum := range beforePages {
+		if _, ok := set[pageNum]; ok {
+			result = append(result, pageNum)
+		}
+	}
+	return result
+}
+
 func sumMiddleElements(pages [][]int, correctPages []int) int {
 	var sum = 0
 	for _, page := range correctPages {
 		sum += pages[page][len(pages[page])/2]
+	}
+	return sum
+}
+
+func sumMiddleElements2(pages [][]int) int {
+	var sum = 0
+	for i := range pages {
+		sum += pages[i][len(pages[i])/2]
 	}
 	return sum
 }
@@ -96,38 +179,6 @@ func parseRulesToMap(rules []OrderPair) map[int][]int {
 		}
 	}
 	return rulesDict
-}
-
-func parseRules(rules []OrderPair) []int {
-	ruleList := make([]int, 0)
-	for _, rule := range rules {
-		fmt.Println(ruleList)
-		if !slices.Contains(ruleList, rule.page) {
-			if !slices.Contains(ruleList, rule.beforePage) {
-				ruleList = append(ruleList, rule.page)
-				ruleList = append(ruleList, rule.beforePage)
-			} else {
-				ruleList = slices.Insert(
-					ruleList, slices.Index(ruleList, rule.beforePage), rule.page)
-			}
-		} else {
-			if !slices.Contains(ruleList, rule.beforePage) {
-				ruleList = append(ruleList, rule.beforePage)
-			} else {
-				pageBeforeIndex := slices.Index(ruleList, rule.beforePage)
-				pageIndex := slices.Index(ruleList, rule.page)
-
-				// for X | Y <-- X must be before Y
-				// delete X from list, insert it at Y index,
-				// rest of slice (from Y index) is shifted right
-				if pageIndex > pageBeforeIndex {
-					ruleList = slices.Delete(ruleList, pageIndex, pageIndex+1)
-					ruleList = slices.Insert(ruleList, pageBeforeIndex, rule.page)
-				}
-			}
-		}
-	}
-	return ruleList
 }
 
 func readFile(fileName string) (rules []OrderPair, pages [][]int) {
@@ -169,7 +220,6 @@ func readFile(fileName string) (rules []OrderPair, pages [][]int) {
 
 	for i, line := range strings.Split(pageInput, "\n") {
 		page := strings.Split(line, PageSeparator)
-		//pages[i] = make([]int, len(page))
 		pages[i] = stringsToInts(page)
 	}
 
