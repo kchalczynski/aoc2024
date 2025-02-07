@@ -23,11 +23,40 @@ var Room Area
 func initializeArea(board [][]string) {
 	Room.sizeX = len(board[0])
 	Room.sizeY = len(board)
-	Room.board = board
+	Room.board = stringsToPositions(board)
 }
 
+func stringsToPositions(board [][]string) [][]Position {
+	colN, rowN := len(board), len(board[0])
+	positions := make([][]Position, colN)
+	for i := 0; i < colN; i++ {
+		positions[i] = make([]Position, rowN)
+		for j := 0; j < rowN; j++ {
+			positions[i][j] = Position{
+				row:           i,
+				col:           j,
+				isVisited:     false,
+				isObstruction: board[i][j] == obstructionMark,
+				direction: func(cell string) string {
+					switch cell {
+					case dirN:
+						return dirN
+					case dirE:
+						return dirE
+					case dirS:
+						return dirS
+					case dirW:
+						return dirW
+					}
+					return ""
+				}(board[i][j]),
+			}
+		}
+	}
+	return positions
+}
 func markVisited(y, x int) {
-	Room.board[y][x] = visitedMark
+	Room.board[y][x].isVisited = true
 }
 
 func main() {
@@ -53,7 +82,7 @@ func main() {
 
 type Area struct {
 	sizeX, sizeY int
-	board        [][]string
+	board        [][]Position
 }
 
 type Position struct {
@@ -112,7 +141,7 @@ func (g *Guard) Move() error {
 		g.posX--
 	}
 
-	if Room.board[g.posY][g.posX] == notVisitedMark {
+	if !Room.board[g.posY][g.posX].isVisited {
 		markVisited(g.posY, g.posX)
 		g.visitedCount++
 	}
@@ -124,19 +153,19 @@ func (g *Guard) CheckAhead() bool {
 
 	switch g.direction {
 	case "N":
-		if Room.board[g.posY-1][g.posX] != obstructionMark {
+		if !Room.board[g.posY-1][g.posX].isObstruction {
 			return true
 		}
 	case "E":
-		if Room.board[g.posY][g.posX+1] != obstructionMark {
+		if !Room.board[g.posY][g.posX+1].isObstruction {
 			return true
 		}
 	case "S":
-		if Room.board[g.posY+1][g.posX] != obstructionMark {
+		if !Room.board[g.posY+1][g.posX].isObstruction {
 			return true
 		}
 	case "W":
-		if Room.board[g.posY][g.posX-1] != obstructionMark {
+		if !Room.board[g.posY][g.posX-1].isObstruction {
 			return true
 		}
 	}
@@ -171,10 +200,10 @@ func readContentIntoMatrix(input string, linesCount int) [][]string {
 	return letterMatrix
 }
 
-func initializeGuard(areaMap [][]string) (Guard, error) {
+func initializeGuard(areaMap [][]Position) (Guard, error) {
 	for i, row := range areaMap {
 		for j, val := range row {
-			switch val {
+			switch val.direction {
 			case dirN:
 				return Guard{i, j, "N", 1}, nil
 			case dirE:
