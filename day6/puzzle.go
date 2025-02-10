@@ -8,6 +8,20 @@ import (
 	"strings"
 )
 
+/*
+Part 2
+Copy map for each try
+Obstructions can only be placed on visitedMarks, except the first one (starting point)
+If guards path AFTER new obstruction contains both visited position and position with same direction
+then it should lead to loop in path, as no new obstruction can be placed and nothing can really change his way
+
+Task list:
+ 1. Get list of visited positions;
+ 2. Copy map3
+ 3. May need a starting position, place obstruction at the next position of the guard
+    Q: Can I place obstruction at the second position of the guard, just after starting?
+ 4. Simulate path and compare
+*/
 const (
 	visitedMark     = "X"
 	notVisitedMark  = "."
@@ -38,15 +52,8 @@ func stringsToPositions(board [][]string) [][]Position {
 				isVisited:     false,
 				isObstruction: board[i][j] == obstructionMark,
 				direction: func(cell string) string {
-					switch cell {
-					case dirN:
-						return dirN
-					case dirE:
-						return dirE
-					case dirS:
-						return dirS
-					case dirW:
-						return dirW
+					if cell == dirN || cell == dirE || cell == dirS || cell == dirW {
+						return cell
 					}
 					return ""
 				}(board[i][j]),
@@ -95,6 +102,7 @@ type Guard struct {
 	posY, posX   int
 	direction    string
 	visitedCount int
+	visitedList  []Position
 }
 
 func (g *Guard) Patrol() {
@@ -109,14 +117,14 @@ func (g *Guard) Patrol() {
 
 func (g *Guard) TurnR() {
 	switch g.direction {
-	case "N":
-		g.direction = "E"
-	case "E":
-		g.direction = "S"
-	case "S":
-		g.direction = "W"
-	case "W":
-		g.direction = "N"
+	case dirN:
+		g.direction = dirE
+	case dirE:
+		g.direction = dirS
+	case dirS:
+		g.direction = dirW
+	case dirW:
+		g.direction = dirN
 	}
 }
 
@@ -131,13 +139,13 @@ func (g *Guard) Move() error {
 	}
 
 	switch g.direction {
-	case "N":
+	case dirN:
 		g.posY--
-	case "E":
+	case dirE:
 		g.posX++
-	case "S":
+	case dirS:
 		g.posY++
-	case "W":
+	case dirW:
 		g.posX--
 	}
 
@@ -152,19 +160,19 @@ func (g *Guard) Move() error {
 func (g *Guard) CheckAhead() bool {
 
 	switch g.direction {
-	case "N":
+	case dirN:
 		if !Room.board[g.posY-1][g.posX].isObstruction {
 			return true
 		}
-	case "E":
+	case dirE:
 		if !Room.board[g.posY][g.posX+1].isObstruction {
 			return true
 		}
-	case "S":
+	case dirS:
 		if !Room.board[g.posY+1][g.posX].isObstruction {
 			return true
 		}
-	case "W":
+	case dirW:
 		if !Room.board[g.posY][g.posX-1].isObstruction {
 			return true
 		}
@@ -175,13 +183,13 @@ func (g *Guard) CheckAhead() bool {
 func checkRoomBounds(row, col int, direction string) error {
 	newRow, newCol := row, col
 	switch direction {
-	case "N":
+	case dirN:
 		newRow = row - 1
-	case "E":
+	case dirE:
 		newCol = col + 1
-	case "S":
+	case dirS:
 		newRow = row + 1
-	case "W":
+	case dirW:
 		newCol = col - 1
 	}
 	if newRow < 0 || newCol < 0 || newRow >= Room.sizeY || newCol >= Room.sizeX {
@@ -201,35 +209,19 @@ func readContentIntoMatrix(input string, linesCount int) [][]string {
 }
 
 func initializeGuard(areaMap [][]Position) (Guard, error) {
+	visitedList := make([]Position, 0)
+
 	for i, row := range areaMap {
 		for j, val := range row {
-			switch val.direction {
-			case dirN:
-				return Guard{i, j, "N", 1}, nil
-			case dirE:
-				return Guard{i, j, "E", 1}, nil
-			case dirS:
-				return Guard{i, j, "S", 1}, nil
-			case dirW:
-				return Guard{i, j, "W", 1}, nil
+			if val.direction == dirN || val.direction == dirE || val.direction == dirS || val.direction == dirW {
+				areaMap[i][j].isVisited = true
+				visitedList = append(visitedList, areaMap[i][j])
+				return Guard{i, j, val.direction, 1, visitedList}, nil
 			}
-
 		}
 	}
 	return Guard{}, errors.New("No guard on the map")
 }
-
-/*if slices.ContainsFunc(row, func(direction string) bool {
-	switch direction {
-	case
-		dirN,
-		dirE,
-		dirS,
-		dirW:
-		return true
-	}
-return false
-}) {*/
 
 func readFile(fileName string) (string, int) {
 	file, err := os.Open(fileName)
@@ -238,11 +230,10 @@ func readFile(fileName string) (string, int) {
 		fmt.Println("Error opening file: ", err)
 		return "", 0
 	}
-	var content string = ""
+	var content = ""
+	var lineCount = 0
 
 	defer file.Close()
-
-	var lineCount int = 0
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
