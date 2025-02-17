@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -32,12 +33,12 @@ const (
 	dirW            = "<"
 )
 
-var Room Area
+var BaseRoom Area
 
 func initializeArea(board [][]string) {
-	Room.sizeX = len(board[0])
-	Room.sizeY = len(board)
-	Room.board = stringsToPositions(board)
+	BaseRoom.sizeX = len(board[0])
+	BaseRoom.sizeY = len(board)
+	BaseRoom.board = stringsToPositions(board)
 }
 
 func stringsToPositions(board [][]string) [][]Position {
@@ -62,28 +63,35 @@ func stringsToPositions(board [][]string) [][]Position {
 	}
 	return positions
 }
-func markVisited(y, x int) {
-	Room.board[y][x].isVisited = true
+func (room *Area) markVisited(y, x int) {
+	room.board[y][x].isVisited = true
 }
 
 func main() {
 
-	var inputFile = "input.txt"
+	var inputFile = "input2.txt"
 	var inputContent string
 	var inputLinesCount int
 
 	inputContent, inputLinesCount = readFile(inputFile)
 	initializeArea(readContentIntoMatrix(inputContent, inputLinesCount))
+	guard, err := initializeGuard(BaseRoom.board)
 
-	guard, err := initializeGuard(Room.board)
+	// Changed to new room variable from global BaseRoom because I need to use modified room to check for loops,
+	// but don't want to change the global one
+	room := BaseRoom
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		markVisited(guard.posY, guard.posX)
-		guard.Patrol()
+
+		room.markVisited(guard.posY, guard.posX)
+		guard.Patrol(room)
 		println(guard.posX, guard.posY, guard.visitedCount)
 
 	}
+	room.printRoom()
+	loopCount := guard.countPossibleLoops()
+	println(loopCount)
 
 }
 
@@ -105,9 +113,9 @@ type Guard struct {
 	visitedList  []Position
 }
 
-func (g *Guard) Patrol() {
+func (g *Guard) Patrol(room Area) {
 	for {
-		err := g.Move()
+		err := g.Move(room)
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -128,13 +136,13 @@ func (g *Guard) TurnR() {
 	}
 }
 
-func (g *Guard) Move() error {
-
+func (g *Guard) Move(room Area) error {
+	//fmt.Println("test1")
 	if err := checkRoomBounds(g.posY, g.posX, g.direction); err != nil {
 		return err
 	}
-
-	if !g.CheckAhead() {
+	//fmt.Println("test2")
+	if !g.CheckAhead(room) {
 		g.TurnR()
 	}
 
@@ -149,31 +157,35 @@ func (g *Guard) Move() error {
 		g.posX--
 	}
 
-	if !Room.board[g.posY][g.posX].isVisited {
-		markVisited(g.posY, g.posX)
+	if !room.board[g.posY][g.posX].isVisited {
+		room.markVisited(g.posY, g.posX)
+
+		// TODO: direction might have to be changed before, after the turn, before the move, so Guard is not pointing towards obstruction
+		room.board[g.posY][g.posX].direction = g.direction
+		g.visitedList = append(g.visitedList, room.board[g.posY][g.posX])
 		g.visitedCount++
 	}
 
 	return nil
 }
 
-func (g *Guard) CheckAhead() bool {
+func (g *Guard) CheckAhead(room Area) bool {
 
 	switch g.direction {
 	case dirN:
-		if !Room.board[g.posY-1][g.posX].isObstruction {
+		if !room.board[g.posY-1][g.posX].isObstruction {
 			return true
 		}
 	case dirE:
-		if !Room.board[g.posY][g.posX+1].isObstruction {
+		if !room.board[g.posY][g.posX+1].isObstruction {
 			return true
 		}
 	case dirS:
-		if !Room.board[g.posY+1][g.posX].isObstruction {
+		if !room.board[g.posY+1][g.posX].isObstruction {
 			return true
 		}
 	case dirW:
-		if !Room.board[g.posY][g.posX-1].isObstruction {
+		if !room.board[g.posY][g.posX-1].isObstruction {
 			return true
 		}
 	}
@@ -192,10 +204,115 @@ func checkRoomBounds(row, col int, direction string) error {
 	case dirW:
 		newCol = col - 1
 	}
-	if newRow < 0 || newCol < 0 || newRow >= Room.sizeY || newCol >= Room.sizeX {
-		return errors.New("Out of room bounds")
+	// can use global BaseRoom below, as dimensions don't change
+	if newRow < 0 || newCol < 0 || newRow >= BaseRoom.sizeY || newCol >= BaseRoom.sizeX {
+		return fmt.Errorf("Out of room bounds; newRow: %d, newCol: %d", newRow, newCol)
 	}
 	return nil
+}
+
+func (g *Guard) countPossibleLoops() int {
+	loopCount := 0
+	for i := 1; i < len(g.visitedList); i++ {
+		fmt.Println("iter", i)
+		// create clean copy of Room with default obstructions
+		tempRoom := CopyRoom(BaseRoom)
+		tempRoom.printRoom()
+
+		// create clean copy of Guard with moves up to that iteration
+		// so his visited list is limited to "i"th move
+
+		// first deep copy visited list, slice of struct cannot be copied directly
+		tempVisitedList := make([]Position, len(g.visitedList))
+		copy(tempVisitedList, g.visitedList)
+
+		// then copy guard itself and set his current position
+		tempGuard := g.CopyGuard(tempVisitedList[0:i])
+		tempGuard.posY, tempGuard.posX = tempVisitedList[i-1].row, tempVisitedList[i-1].col
+
+		// mark guards route in room to this iteration
+		tempRoom.markRouteInRoom(tempGuard)
+		tempRoom.printRoom()
+
+		// mark new Obstruction on Guards next position
+		tempRoom.markNewObstruction(g.visitedList[i])
+
+		// simulate guards route with that new Obstruction
+		if tempGuard.checkLoopInNewRoute(tempRoom) {
+			loopCount++
+			//fmt.Println("iter", i)
+			println("OOPS")
+			tempRoom.printRoom()
+		}
+
+	}
+	return loopCount
+}
+
+func CopyRoom(room Area) Area {
+	roomCopy := room
+	roomCopy.board = make([][]Position, len(room.board))
+	for i := range room.board {
+		roomCopy.board[i] = make([]Position, len(room.board[i]))
+		copy(roomCopy.board[i], room.board[i])
+	}
+
+	for i := range roomCopy.board {
+		for j := range roomCopy.board[i] {
+			roomCopy.board[i][j].isVisited = false
+			roomCopy.board[i][j].direction = ""
+		}
+	}
+
+	return roomCopy
+}
+
+func (room *Area) markNewObstruction(position Position) {
+	room.board[position.row][position.col].isObstruction = true
+}
+
+func (g *Guard) IsLoop(p Position) bool {
+	if slices.Contains(g.visitedList, p) {
+		return true
+	}
+	return false
+}
+
+func (g *Guard) checkLoopInNewRoute(room Area) bool {
+
+	// dopóki nie wywali się error albo nie będzie pętli
+	for {
+		fmt.Println("move")
+		err := g.Move(room)
+		if err != nil {
+			fmt.Println(err)
+			return false
+		} else {
+
+			// g.posY i g.posX coś nie spełniają swojego zadania
+
+			// chcę sprawdzić, czy ta pozycja była już odwiedzona
+			// ale skoro sprawdzam aktualną pozycję - zawsze będzie na liście
+			// TODO: Najpierw ruch?
+			if g.IsLoop(room.board[g.posY][g.posX]) {
+				room.printRoom()
+				fmt.Println("is loop")
+				return true
+			} else {
+				// co tu robię
+				fmt.Println("else nie loop")
+				g.visitedList = append(g.visitedList, Position{g.posY, g.posX, true, false, g.direction})
+			}
+		}
+	}
+}
+func (g *Guard) CopyGuard(visitedPositions []Position) Guard {
+	// dereference
+
+	tempGuard := *g
+	tempGuard.visitedList = make([]Position, len(visitedPositions))
+	copy(tempGuard.visitedList, visitedPositions)
+	return tempGuard
 }
 
 func readContentIntoMatrix(input string, linesCount int) [][]string {
@@ -243,4 +360,33 @@ func readFile(fileName string) (string, int) {
 	}
 
 	return strings.TrimSuffix(content, "\n"), lineCount
+}
+
+func (room *Area) printRoom() {
+	var roomMap = ""
+	for _, row := range room.board {
+		for _, col := range row {
+			if col.isVisited {
+				roomMap += col.direction
+			} else {
+				if col.isObstruction {
+					roomMap += obstructionMark
+				} else {
+					roomMap += notVisitedMark
+				}
+			}
+			roomMap += " "
+		}
+		roomMap += "\n"
+	}
+
+	fmt.Println(roomMap)
+}
+
+func (room *Area) markRouteInRoom(g Guard) {
+	for _, pos := range g.visitedList {
+		room.board[pos.row][pos.col].isObstruction = false
+		room.board[pos.row][pos.col].isVisited = true
+		room.board[pos.row][pos.col].direction = pos.direction
+	}
 }
