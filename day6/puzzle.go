@@ -26,7 +26,7 @@ var BaseRoom Area
 
 func main() {
 
-	var inputFile = "input2.txt"
+	var inputFile = "input.txt"
 	var inputContent string
 	var inputLinesCount int
 
@@ -35,7 +35,7 @@ func main() {
 	guard, err := initializeGuard(BaseRoom.board)
 
 	// Global variable for part 1, copies for part 2
-	room := BaseRoom
+	room := BaseRoom.CopyRoom()
 	if err != nil {
 		fmt.Println(err)
 	} else {

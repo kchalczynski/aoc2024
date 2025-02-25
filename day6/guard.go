@@ -68,36 +68,35 @@ func (g *Guard) move(room Area) error {
 	}
 	if !canGoAhead {
 		g.turnR()
+	} else {
+		// TODO FIX: TURN AND MOVE CANNOT HAPPEN IN THE SAME ITERATION/METHOD CALL
+
+		// setting next position based on direction could be in separate method
+		// out of bounds check probably could be implemented here as well:
+		switch g.direction {
+		case dirN:
+			g.posY--
+		case dirE:
+			g.posX++
+		case dirS:
+			g.posY++
+		case dirW:
+			g.posX--
+		}
+		if !room.board[g.posY][g.posX].isVisited {
+			room.markVisited(g.posY, g.posX)
+
+			g.visitedCount++
+		}
 	}
-
-	// setting next position based on direction could be in separate method
-	// out of bounds check probably could be implemented here as well:
-	switch g.direction {
-	case dirN:
-		g.posY--
-	case dirE:
-		g.posX++
-	case dirS:
-		g.posY++
-	case dirW:
-		g.posX--
-	}
-
-	if !room.board[g.posY][g.posX].isVisited {
-		room.markVisited(g.posY, g.posX)
-
-		// TODO: direction might have to be changed earlier: after the turn, before the move, so Guard is not pointing towards obstruction
-
-		room.board[g.posY][g.posX].direction = g.direction
-		g.visitedList = append(g.visitedList, room.board[g.posY][g.posX])
-		g.visitedCount++
-	}
+	visitedRoom := Position{g.posY, g.posX, true, false, g.direction}
+	g.visitedList = append(g.visitedList, visitedRoom)
 
 	return nil
 }
 
 func (g *Guard) CopyGuard(moveIndex int) *Guard {
-	if moveIndex == 0 || moveIndex > len(g.visitedList) {
+	if moveIndex == 0 || moveIndex >= len(g.visitedList) {
 		return nil
 	}
 
@@ -105,26 +104,14 @@ func (g *Guard) CopyGuard(moveIndex int) *Guard {
 
 	copy(tempGuard.visitedList, g.visitedList[:moveIndex])
 
-	lastPosition := tempGuard.visitedList[moveIndex-1]
+	lastPosition := tempGuard.visitedList[len(tempGuard.visitedList)-1]
 	tempGuard.posY, tempGuard.posX = lastPosition.row, lastPosition.col
 	tempGuard.direction = lastPosition.direction
-	tempGuard.visitedCount = len(tempGuard.visitedList)
 
 	return tempGuard
 }
 
-func (g *Guard) isLoop() bool {
-
-	if len(g.visitedList) > 1 {
-		if slices.ContainsFunc(g.visitedList[:len(g.visitedList)-1], func(position Position) bool {
-			return position.col == g.posX && position.row == g.posY && position.direction == g.direction
-		}) {
-			return true
-		}
-	}
-	return false
-}
-
+/*
 // Adding to visitedList inside original method was problematic, maybe ill fix it later, I'd have to refactor part 1 sol
 func (g *Guard) move2(room Area) error {
 
@@ -134,6 +121,7 @@ func (g *Guard) move2(room Area) error {
 	}
 	if !canGoAhead {
 		g.turnR()
+		return nil
 	}
 
 	switch g.direction {
@@ -157,30 +145,57 @@ func (g *Guard) move2(room Area) error {
 	}
 
 	return nil
+}*/
+
+func (g *Guard) isLoop() bool {
+
+	// At least 4 moves/turns required for loop
+	if len(g.visitedList) > 1 {
+		if slices.ContainsFunc(g.visitedList[:len(g.visitedList)-1], func(position Position) bool {
+			return position.col == g.posX &&
+				position.row == g.posY &&
+				position.direction == g.direction
+		}) {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *Guard) countPossibleLoops() int {
 	loopCount := 0
-	for i := 1; i < g.visitedCount; i++ {
-		fmt.Println("iter", i)
-		// create clean copy of Room with default obstructions
-		tempRoom := BaseRoom.CopyRoom()
-		//tempRoom.PrintRoom()
+	// create clean copy of Room with default obstructions
+	baseRoomForMove := BaseRoom.CopyRoom()
 
-		// create clean copy of Guard with moves up to that iteration
-		// so his visited list is limited to "i"th move
+	for i := 1; i < len(g.visitedList); i++ {
+		// cannot put obstruction at guards starting position, no matter what iteration
+		if (g.visitedList[i].row == g.visitedList[0].row && g.visitedList[i].col == g.visitedList[0].col) ||
+			g.visitedList[i].isObstruction {
+			continue
+		}
 
-		// first deep copy visited list, slice of struct cannot be copied directly
-		tempVisitedList := make([]Position, len(g.visitedList))
-		copy(tempVisitedList, g.visitedList)
+		if i%250 == 0 {
+			fmt.Println(i, "loop count:", loopCount)
+		}
 
-		// then copy guard itself and set his current position
+		//TODO: Maybe I could optimize by making BaseRoom always updated up to nth iteration
+		// then tempRoom doesnt have to be updated every time from the beginning
+		// same with Guards position
+
+		// copy guard itself and set his current position
 		tempGuard := g.CopyGuard(i)
-		//tempGuard.posY, tempGuard.posX = tempVisitedList[i-1].row, tempVisitedList[i-1].col
 
-		// mark guards route in room to this iteration
-		tempRoom.markRouteInRoom(tempGuard)
-		//tempRoom.PrintRoom()
+		baseRoomForMove.markPosInRoom(tempGuard)
+		tempRoom := baseRoomForMove.CopyRoom()
+
+		// check if new obstruction position hasn't been visited by guard before
+		// if it did, position is invalid, as obstruction must be placed before guard starts patrol
+		// move to the next iteration
+		if slices.ContainsFunc(tempGuard.visitedList, func(position Position) bool {
+			return position.row == g.visitedList[i].row && position.col == g.visitedList[i].col
+		}) {
+			continue
+		}
 
 		// mark new Obstruction on Guards next position
 		tempRoom.markNewObstruction(g.visitedList[i])
@@ -188,12 +203,9 @@ func (g *Guard) countPossibleLoops() int {
 		// simulate guards route with that new Obstruction
 		if tempGuard.checkLoopInNewRoute(tempRoom) {
 			loopCount++
-			//fmt.Println("iter", i)
-			println("OOPS")
-			//tempRoom.PrintRoom()
 		}
-
 	}
+
 	return loopCount
 }
 
@@ -201,18 +213,12 @@ func (g *Guard) checkLoopInNewRoute(room Area) bool {
 
 	// execute until guard is out of room bounds or there is a loop
 	for {
-		err := g.move2(room)
+		err := g.move(room)
 		if err != nil {
-			fmt.Println(err)
 			return false
 		} else {
-
-			// TODO: Najpierw sprawdzam aktualną pozycję z resztą na liście, potem ruch+dodanie do listy
 			if g.isLoop() {
 				return true
-			} else {
-				// if new obstruction does not result in a loop, add position as visited and place obstruction at the next position
-				g.visitedList = append(g.visitedList, Position{g.posY, g.posX, true, false, g.direction})
 			}
 		}
 	}
