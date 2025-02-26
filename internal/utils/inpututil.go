@@ -1,23 +1,14 @@
-package main
+package utils
 
 import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
-const (
-	visitedMark     = "X"
-	notVisitedMark  = "."
-	obstructionMark = "#"
-	dirN            = "^"
-	dirE            = ">"
-	dirS            = "v"
-	dirW            = "<"
-)
-
-func readFile(fileName string) (string, int) {
+func ReadFile(fileName string) (string, int) {
 	file, err := os.Open(fileName)
 
 	if err != nil {
@@ -33,18 +24,30 @@ func readFile(fileName string) (string, int) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		lineCount += 1
-		content += line + "\n"
+		content += strings.TrimSpace(line) + "\n"
 	}
 
 	return strings.TrimSuffix(content, "\n"), lineCount
 }
 
-func readContentIntoMatrix(input string, linesCount int) [][]string {
+func SplitStringByLines(input string) []string {
+	lines := strings.Split(input, "\n")
+	return lines
+}
 
+func ReadIntoMatrixByCharacter(input string, linesCount int) [][]string {
 	letterMatrix := make([][]string, linesCount)
 
 	for i, val := range strings.Split(input, "\n") {
 		letterMatrix[i] = strings.Split(val, "")
 	}
 	return letterMatrix
+}
+
+func StringsToInts(input []string) []int {
+	result := make([]int, len(input))
+	for i, s := range input {
+		result[i], _ = strconv.Atoi(s)
+	}
+	return result
 }

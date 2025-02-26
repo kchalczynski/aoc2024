@@ -1,6 +1,7 @@
-package main
+package day6
 
 import (
+	"aoc2024/internal/utils"
 	"errors"
 	"fmt"
 )
@@ -24,14 +25,14 @@ Task list:
 
 var BaseRoom Area
 
-func main() {
+func Solve() {
 
 	var inputFile = "input.txt"
 	var inputContent string
 	var inputLinesCount int
 
-	inputContent, inputLinesCount = readFile(inputFile)
-	initializeArea(readContentIntoMatrix(inputContent, inputLinesCount))
+	inputContent, inputLinesCount = utils.ReadFile(inputFile)
+	initializeArea(utils.ReadIntoMatrixByCharacter(inputContent, inputLinesCount))
 	guard, err := initializeGuard(BaseRoom.board)
 
 	// Global variable for part 1, copies for part 2

@@ -1,4 +1,4 @@
-package main
+package day6
 
 type Position struct {
 	row, col                 int
