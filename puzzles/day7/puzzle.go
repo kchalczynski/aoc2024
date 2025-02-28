@@ -2,6 +2,7 @@ package day7
 
 import (
 	"aoc2024/internal/utils"
+	"fmt"
 	"github.com/kr/pretty"
 	"math"
 )
@@ -20,19 +21,17 @@ func Solve() {
 		testVals = append(testVals, k)
 	}
 
-	operatorPermutations := make(map[int][]string)
-	for _, v := range valMap {
-		if operatorPermutations[len(v)] != nil {
-			operatorPermutations[len(v)] = make([]string, 0, len(v)-1)
-		}
-	}
-
-	generateAllOperators()
+	// For each input length, store 2d slice of all possible operator permutations in map, so it is generated only once
+	operatorPermutations := make(map[int][][]string)
+	initOperatorPermutationMap(operatorPermutations, valMap)
 
 	pretty.Println(valMap)
-	posResults := checkForResults(&testVals)
+	generateAllOperators(operatorPermutations)
+	pretty.Println(operatorPermutations)
 
-	sumValues(&posResults, &testVals)
+	//posResults := checkForResults(&testVals)
+	//
+	//sumValues(&posResults, &testVals)
 }
 
 func sumValues(posResults *[]int, testVals *[]int) int {
@@ -70,27 +69,57 @@ func checkForResult(testVal int) bool {
 	return false
 }
 
-// TODO: 2 ideas:
-//  1. create operators for every line
-//  2. create map for number of operands in each line, so if there are multiple entries of 3/4/5 etc. operands
+func initOperatorPermutationMap(opMap map[int][][]string, valMap map[int][]int) {
+	for _, v := range valMap {
+		if opMap[len(v)] == nil {
+			opMap[len(v)] = make([][]string, int(math.Pow(2, float64(len(v)-1))))
+			for i, _ := range opMap[len(v)] {
+				opMap[len(v)][i] = make([]string, len(v)-1)
+			}
+		}
+
+	}
+}
+
+func generateAllOperators(operatorPermutations map[int][][]string) {
+	for k, v := range operatorPermutations {
+		currOperators := make([]string, 0, k-1)
+		// operationPermutations[2] <-- possible operator permutations for 2 OPERANDS,
+		//	maybe would be better to map it for X operators instead
+		generateOperators(k-2, &v, currOperators, 0)
+	}
+}
+
+// 	Create map for number of operands in each line, so if there are multiple entries of 3/4/5 etc. operands
 //     I only generate operators list once, before even testing if results are viable
-func generateOperators(depth int, operators *[][]string, currOperators []string, index int) {
-	// I need
-	// 	a) depth - essentially operators left
-	// 	b) operators string/array to add them in recursive calls;
-	// 	c) iterator, so depending on depth I can add currOperators to operators 2d array on specific index
+
+// I need
+// 	a) depth - essentially operators left, it would be either first to last or last to first,
+// 		but it doesn't matter as long as order is preserved across all permutations
+// 	b) operators string/array to add them in recursive calls;
+// 	c) iterator, so depending on depth I can add currOperators to operators 2d array on specific index
+
+func generateOperators(depth int, operators *[][]string, currOperators []string, operatorIdx int) {
+	tempOperators := make([]string, 0, cap(currOperators))
 	for i, _ := range availableOperators {
+		fmt.Println(i, string(availableOperators[i]))
+	}
+	for i, _ := range availableOperators {
+
 		// will it behave like copy when recursive calls are "returning"
 		// so I complete one full recursive call, get e.g. "+++"
 		// then it goes level up, will it be "++" or still "+++"?
 		// same with index, maybe assigning to new value/using that as argument to recursive call would work if this approach doesnt
-		currOperators = append(currOperators, string(availableOperators[i]))
-		index = index + i*int(math.Pow(2, float64(depth)))
+
+		// problem: second iteration on the same depth used same slice, so it operator was added without "resetting"
+		// perhaps temp structure can fix it
+		copy(tempOperators, currOperators)
+		tempOperators = append(currOperators, string(availableOperators[i]))
+		operatorIdx = operatorIdx + i*int(math.Pow(2, float64(depth)))
 		if depth > 0 {
-			generateOperators(depth-1, operators, currOperators, index)
+			generateOperators(depth-1, operators, tempOperators, operatorIdx)
 		} else {
-			// maybe it would be better as a map...
-			(*operators)[index] = currOperators
+			copy((*operators)[operatorIdx], tempOperators)
 		}
 	}
 }
