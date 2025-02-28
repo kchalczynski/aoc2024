@@ -20,6 +20,15 @@ func Solve() {
 		testVals = append(testVals, k)
 	}
 
+	operatorPermutations := make(map[int][]string)
+	for _, v := range valMap {
+		if operatorPermutations[len(v)] != nil {
+			operatorPermutations[len(v)] = make([]string, 0, len(v)-1)
+		}
+	}
+
+	generateAllOperators()
+
 	pretty.Println(valMap)
 	posResults := checkForResults(&testVals)
 
@@ -53,21 +62,35 @@ func checkForResult(testVal int) bool {
 		operators[i] = make([]string, len(operands)-1)
 	}
 
-	generateOperators(len(operands)-1, &operators)
+	// currOperators - I need them for each iteration/depth,
+	// so somehow have to remove last/clean after reaching end?
+	currOperators := make([]string, 0, len(operands)-1)
+	generateOperators(len(operands)-2, &operators, currOperators, 0)
 
+	return false
 }
 
-func generateOperators(operatorsLeft int, operators *[][]string, currOperators []string) {
+// TODO: 2 ideas:
+//  1. create operators for every line
+//  2. create map for number of operands in each line, so if there are multiple entries of 3/4/5 etc. operands
+//     I only generate operators list once, before even testing if results are viable
+func generateOperators(depth int, operators *[][]string, currOperators []string, index int) {
 	// I need
-	// 	a) depth
+	// 	a) depth - essentially operators left
 	// 	b) operators string/array to add them in recursive calls;
 	// 	c) iterator, so depending on depth I can add currOperators to operators 2d array on specific index
 	for i, _ := range availableOperators {
-		if operatorsLeft > 0 {
-			generateOperators(operatorsLeft-1, operators)
-		}
-		if (i+1)%2 != 0 {
-
+		// will it behave like copy when recursive calls are "returning"
+		// so I complete one full recursive call, get e.g. "+++"
+		// then it goes level up, will it be "++" or still "+++"?
+		// same with index, maybe assigning to new value/using that as argument to recursive call would work if this approach doesnt
+		currOperators = append(currOperators, string(availableOperators[i]))
+		index = index + i*int(math.Pow(2, float64(depth)))
+		if depth > 0 {
+			generateOperators(depth-1, operators, currOperators, index)
+		} else {
+			// maybe it would be better as a map...
+			(*operators)[index] = currOperators
 		}
 	}
 }
