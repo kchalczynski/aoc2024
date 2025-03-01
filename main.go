@@ -8,6 +8,7 @@ import (
 	"aoc2024/puzzles/day5"
 	"aoc2024/puzzles/day6"
 	"aoc2024/puzzles/day7"
+	"aoc2024/puzzles/day8"
 	"fmt"
 	"os"
 	"strconv"
@@ -21,6 +22,7 @@ var problemMap = map[int]func(){
 	5: day5.Solve,
 	6: day6.Solve,
 	7: day7.Solve,
+	8: day8.Solve,
 }
 
 func main() {
