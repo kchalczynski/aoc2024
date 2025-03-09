@@ -22,3 +22,16 @@ func stringsToPositions(board [][]string) [][]Position {
 	}
 	return positions
 }
+
+func getFactorial(n int) int {
+	if n > 1 {
+		result := n * getFactorial(n-1)
+		return result
+	}
+
+	return 1
+}
+
+func getCombinationNumber(n, r int) int {
+	return getFactorial(n) / (getFactorial(r) * getFactorial(n-r))
+}

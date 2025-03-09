@@ -9,3 +9,7 @@ type Position struct {
 type SimplePosition struct {
 	row, col int
 }
+
+type PositionPair struct {
+	pos1, pos2 SimplePosition
+}
