@@ -9,6 +9,7 @@ import (
 	"aoc2024/puzzles/day6"
 	"aoc2024/puzzles/day7"
 	"aoc2024/puzzles/day8"
+	"aoc2024/puzzles/day9"
 	"fmt"
 	"os"
 	"strconv"
@@ -23,6 +24,7 @@ var problemMap = map[int]func(){
 	6: day6.Solve,
 	7: day7.Solve,
 	8: day8.Solve,
+	9: day9.Solve,
 }
 
 func main() {
@@ -35,6 +37,12 @@ func main() {
 	if err != nil || day < 1 || day > 25 {
 		fmt.Println("Invalid day number. Please enter a number between 1 and 25.")
 	}
+
+	// TODO: number of test input to use as second argument
+	/*	test, err := strconv.Atoi(os.Args[2])
+		if err != nil || test < 1 || day > 25 {
+			fmt.Println("Invalid test number. Please enter a number between 1 and X.")
+		}*/
 
 	if fn, exists := problemMap[day]; exists {
 		fn()
