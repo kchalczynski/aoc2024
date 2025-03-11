@@ -174,6 +174,7 @@ func calcChecksum(blocks []string) int {
 	}
 	return checksum
 }
+
 func calcChecksumWithEmptySpaces(blocks []string) int {
 	checksum := 0
 	for i, block := range blocks {
