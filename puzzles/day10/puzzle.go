@@ -3,9 +3,10 @@ package day10
 import (
 	"aoc2024/internal/utils"
 	"fmt"
-	"github.com/kr/pretty"
 	"strconv"
 )
+
+// https://adventofcode.com/2024/day/10
 
 type Grid [][]*Position
 
@@ -20,16 +21,17 @@ func Solve() {
 	testNumber := 3
 	var inputFile = fmt.Sprintf("puzzles/day10/test%d.txt", testNumber)
 	inputContents, linesCount := utils.ReadFile(inputFile)
-	pretty.Println(convertInputToInt(utils.ReadIntoMatrixByCharacter(inputContents, linesCount)))
 
 	var grid Grid = convertInputToPosition(utils.ReadIntoMatrixByCharacter(inputContents, linesCount))
 	trailHeads, availableSteps := createMapOfSteps(grid)
-	//pretty.Println(trailHeads)
-	//pretty.Println(availableSteps)
 	validTrails := searchValidTrails(trailHeads, availableSteps)
-	fmt.Println(countTotalTrails(validTrails))
+	fmt.Println(sumTrailScores(validTrails))
+
+	distinctTrails := searchDistinctTrails(trailHeads, availableSteps)
+	fmt.Println(sumTrailRatings(distinctTrails))
 }
 
+// Used to print out the input while solving the puzzle
 func convertInputToInt(input [][]string) [][]int {
 	intArray := make([][]int, len(input))
 	for i := 0; i < len(input); i++ {
@@ -86,11 +88,13 @@ func createMapOfSteps(grid [][]*Position) ([]*Position, map[*Position][]*Positio
 	return trailHeads, nextSteps
 }
 
-// Depth First Search: consider every route from Start to Peak by `height` increment of 1 (positive)
-// Start: Position with `height` = 0
-// Peak: Position with `height` = 0
-// Route is considered unique by every Start and Peak combination
-// Different positions on route from same combination of Start and Peak are not considered different route
+// Depth First Search: consider every route from Start to Peak by `height` increment of 1 (positive).
+//
+//	Start: Position with `height` = 0
+//	Peak: Position with `height` = 9
+//
+// For `Score` route is considered unique by every Start and Peak combination.
+// Different positions on route from same combination of Start and Peak are not considered different route.
 func dfs(start *Position, availableSteps map[*Position][]*Position, visited map[*Position]bool) []*Position {
 	stack := []*Position{start}
 	trails := make([]*Position, 0)
@@ -119,6 +123,35 @@ func dfs(start *Position, availableSteps map[*Position][]*Position, visited map[
 	return trails
 }
 
+// Same as dfs, but for `Rating` route is considered unique by `distinct` sequence of steps from Start to Peak,
+// So there might be multiple distinct routes for the same Start and Peak combination
+func dfsDistinct(start *Position, availableSteps map[*Position][]*Position) [][10]*Position {
+	stack := []*Position{start}
+	distinctTrails := make([][10]*Position, 0)
+	trail := [10]*Position{}
+	for len(stack) > 0 {
+		currentPos := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		trail[currentPos.height] = currentPos
+
+		if currentPos.height == 9 {
+			var distinctTrail = trail
+			distinctTrails = append(distinctTrails, distinctTrail)
+			continue
+		}
+
+		for _, neighbor := range availableSteps[currentPos] {
+			if neighbor.height == currentPos.height+1 {
+				stack = append(stack, neighbor)
+			}
+		}
+	}
+	return distinctTrails
+}
+
+// Find all valid trails for each of the trail heads
+//
+// Valid Trail is considered by unique combination of Start and Peak
 func searchValidTrails(trailHeads []*Position, availableSteps map[*Position][]*Position) map[*Position][]*Position {
 	visited := make(map[*Position]bool)
 	validTrails := make(map[*Position][]*Position)
@@ -135,11 +168,36 @@ func searchValidTrails(trailHeads []*Position, availableSteps map[*Position][]*P
 	return validTrails
 }
 
-func countTotalTrails(validTrails map[*Position][]*Position) int {
-	trailCount := 0
-	for _, validTrail := range validTrails {
-		//pretty.Println(validTrail)
-		trailCount += len(validTrail)
+// Find all distinct valid trails for each of the trail heads
+//
+// Valid trail is considered by unique sequence of steps from Start to Peak
+func searchDistinctTrails(trailHeads []*Position, availableSteps map[*Position][]*Position) map[*Position][][10]*Position {
+	distinctTrails := make(map[*Position][][10]*Position)
+
+	for _, trailHead := range trailHeads {
+		distinctTrailsByHead := dfsDistinct(trailHead, availableSteps)
+		if len(distinctTrailsByHead) > 0 {
+			distinctTrails[trailHead] = distinctTrailsByHead
+		}
 	}
-	return trailCount
+
+	return distinctTrails
+}
+
+func sumTrailScores(validTrails map[*Position][]*Position) int {
+	trailScoreSum := 0
+	for _, validTrail := range validTrails {
+		trailScore := len(validTrail)
+		trailScoreSum += trailScore
+	}
+	return trailScoreSum
+}
+
+func sumTrailRatings(distinctTrails map[*Position][][10]*Position) int {
+	trailRatingSum := 0
+	for _, validTrail := range distinctTrails {
+		trailRating := len(validTrail)
+		trailRatingSum += trailRating
+	}
+	return trailRatingSum
 }

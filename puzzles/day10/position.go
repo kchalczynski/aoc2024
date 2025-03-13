@@ -7,6 +7,4 @@ type Position struct {
 	height int
 	// how many positions can be visited from that one
 	score int
-	// mark position as visited to check for loops
-	isVisited bool
 }

@@ -10,6 +10,8 @@ import (
 var isPart2 = false
 
 func Solve( /*testNumber int*/ ) {
+
+	// FIXME: test number passed as an argument to Solve func call in main()
 	testNumber := 2
 	if testNumber == 0 {
 		testNumber = 1
