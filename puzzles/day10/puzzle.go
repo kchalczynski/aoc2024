@@ -3,21 +3,31 @@ package day10
 import (
 	"aoc2024/internal/utils"
 	"fmt"
+	"github.com/kr/pretty"
 	"strconv"
 )
 
+type Grid [][]*Position
+
+var directions = []struct{ dy, dx int }{
+	{0, 1},  // Up
+	{0, -1}, // Down
+	{1, 0},  // Right
+	{-1, 0}, // Left
+}
+
 func Solve() {
-	testNumber := 1
-	var inputFile = fmt.Sprintf("puzzles/day9/test%d.txt", testNumber)
+	testNumber := 3
+	var inputFile = fmt.Sprintf("puzzles/day10/test%d.txt", testNumber)
 	inputContents, linesCount := utils.ReadFile(inputFile)
+	pretty.Println(convertInputToInt(utils.ReadIntoMatrixByCharacter(inputContents, linesCount)))
 
-	inputArray := convertInputToInt(utils.ReadIntoMatrixByCharacter(inputContents, linesCount))
-	trailHeads, nextSteps := createMapOfSteps(inputArray)
-
-	trailHeadScores := make(map[Position]int)
-	for _, pos := range trailHeads {
-		trailHeadScores[pos] = 0
-	}
+	var grid Grid = convertInputToPosition(utils.ReadIntoMatrixByCharacter(inputContents, linesCount))
+	trailHeads, availableSteps := createMapOfSteps(grid)
+	//pretty.Println(trailHeads)
+	//pretty.Println(availableSteps)
+	validTrails := searchValidTrails(trailHeads, availableSteps)
+	fmt.Println(countTotalTrails(validTrails))
 }
 
 func convertInputToInt(input [][]string) [][]int {
@@ -46,34 +56,90 @@ func convertInputToPosition(input [][]string) [][]*Position {
 }
 
 // Create a map of viable next steps for every position
-func createMapOfSteps(input [][]*Position) ([]*Position, map[*Position][]*Position) {
-	rowSize, colSize := len(input), len(input[0])
+func createMapOfSteps(grid [][]*Position) ([]*Position, map[*Position][]*Position) {
+	rowSize, colSize := len(grid), len(grid[0])
 	trailHeads := make([]*Position, 0)
 	nextSteps := make(map[*Position][]*Position)
-	for y, line := range input {
-		for x, height := range line {
-			currentPosition := Position{y: y, x: x, value: height}
-			if height == 0 {
-				trailHeads = append(trailHeads, currentPosition)
+	for y, line := range grid {
+		for x, currentPos := range line {
+
+			if currentPos.height == 0 {
+				trailHeads = append(trailHeads, currentPos)
 			}
-			availableSteps := make([]Position, 0, 4)
-			if y > 0 && input[y-1][x] == height+1 {
-				// I don't need height in available steps list for now, as every step will be height+1
-				// and don't need references for position objects? only coordinates
-				availableSteps = append(availableSteps, Position{y: y - 1, x: x})
-			}
-			if y < rowSize-1 && input[y+1][x] == height+1 {
-				availableSteps = append(availableSteps, Position{y: y + 1, x: x})
-			}
-			if x > 0 && input[y][x-1] == height+1 {
-				availableSteps = append(availableSteps, Position{y: y, x: x - 1})
-			}
-			if x < colSize-1 && input[y][x+1] == height+1 {
-				availableSteps = append(availableSteps, Position{y: y, x: x + 1})
+			availableSteps := make([]*Position, 0, 4)
+
+			for _, dir := range directions {
+				newY, newX := y+dir.dy, x+dir.dx
+
+				if newY >= 0 && newY < rowSize && newX >= 0 && newX < colSize {
+					neighbor := grid[newY][newX]
+
+					if neighbor.height == currentPos.height+1 {
+						availableSteps = append(availableSteps, neighbor)
+					}
+				}
 			}
 
-			nextSteps[currentPosition] = append(nextSteps[currentPosition], availableSteps...)
+			nextSteps[currentPos] = availableSteps
 		}
 	}
 	return trailHeads, nextSteps
+}
+
+// Depth First Search: consider every route from Start to Peak by `height` increment of 1 (positive)
+// Start: Position with `height` = 0
+// Peak: Position with `height` = 0
+// Route is considered unique by every Start and Peak combination
+// Different positions on route from same combination of Start and Peak are not considered different route
+func dfs(start *Position, availableSteps map[*Position][]*Position, visited map[*Position]bool) []*Position {
+	stack := []*Position{start}
+	trails := make([]*Position, 0)
+	for len(stack) > 0 {
+		currentPos := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		if visited[currentPos] {
+			continue
+		}
+
+		visited[currentPos] = true
+		// I don't have to reset visited while going back (checking another neighbor),
+		// because checking already visited Position would not result in different End
+		if currentPos.height == 9 {
+			trails = append(trails, currentPos)
+			continue
+		}
+
+		for _, neighbor := range availableSteps[currentPos] {
+			if !visited[neighbor] && neighbor.height == currentPos.height+1 {
+				stack = append(stack, neighbor)
+			}
+		}
+	}
+	return trails
+}
+
+func searchValidTrails(trailHeads []*Position, availableSteps map[*Position][]*Position) map[*Position][]*Position {
+	visited := make(map[*Position]bool)
+	validTrails := make(map[*Position][]*Position)
+
+	for _, trailHead := range trailHeads {
+		visited = make(map[*Position]bool)
+
+		reachablePeaks := dfs(trailHead, availableSteps, visited)
+		if len(reachablePeaks) > 0 {
+			validTrails[trailHead] = reachablePeaks
+		}
+	}
+
+	return validTrails
+}
+
+func countTotalTrails(validTrails map[*Position][]*Position) int {
+	trailCount := 0
+	for _, validTrail := range validTrails {
+		//pretty.Println(validTrail)
+		trailCount += len(validTrail)
+	}
+	return trailCount
 }
