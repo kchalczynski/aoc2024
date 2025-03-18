@@ -12,7 +12,7 @@ var multiplier int = 2024
 
 func Solve() {
 	testNumber := 3
-	turns := 60
+	turns := 43
 	var inputFile = fmt.Sprintf("puzzles/day11/test%d.txt", testNumber)
 	inputContents, _ := utils.ReadFile(inputFile)
 
@@ -21,8 +21,13 @@ func Solve() {
 
 	//approximateMaxStoneValue(stoneSeq, multiplier, turns)
 
-	stoneSeq = blinkTimes(turns, stoneSeq)
-	fmt.Println(len(stoneSeq))
+	if turns < 35 {
+		stoneSeq = blinkTimes(turns, stoneSeq)
+		fmt.Println(len(stoneSeq))
+	}
+
+	totalElements := countTotalElements(stoneSeq, turns)
+	fmt.Println("Total elements after", turns, "turns:", totalElements)
 }
 
 // Approximate max size of stones.
@@ -42,54 +47,46 @@ func approximateElementSize(initialValue int, turns int) float64 {
 	return float64(initialValue) * math.Pow(float64(multiplier), float64(turns))
 }
 
+// After approximately ~45 blinks/iterations we run out of memory.
+// Full array of generated stones takes ~6GB of RAM
 func blinkTimes(turns int, stoneSeq []int) []int {
-	var bufferSize = int(math.Pow(2, float64(turns/2)))
-	var batchSize = 1000000
-	buffer1 := make([]int, 0, bufferSize)
-	buffer2 := make([]int, 0, bufferSize)
+	var bufferSize = int(math.Pow(2, float64(turns/10))) * len(stoneSeq)
+	var batchSize = 100000
+	current := make([]int, 0, bufferSize)
+	next := make([]int, 0, bufferSize)
 
-	current := &buffer1
-	next := &buffer2
-
-	*current = append(*current, stoneSeq...)
+	current = append(current, stoneSeq...)
 	for i := 0; i < turns; i++ {
-		fmt.Println("Turn: ", i, " | Seq size: ", len(*current))
-		fmt.Println("Batches: ", 1+len(*current)/batchSize)
-		for i := 0; i < len(*current); i += batchSize {
-			end := min(i+batchSize, len(*current))
-			*next = (*next)[:0]
-			newCurrent := (*current)[i:end]
-			newNext := (*next)[i:end]
-			*current, *next = blink(&newCurrent, &newNext)
-			//*current, *next = blink((*current)[i:end], (*next)[i:end])
+		fmt.Println("Turn: ", i, " | Seq size: ", len(current))
+		fmt.Println("Batches: ", 1+len(current)/batchSize)
+		next = (next)[:0]
+
+		for i := 0; i < len(current); i += batchSize {
+			end := min(i+batchSize, len(current))
+			blink(current[i:end], &next)
 		}
+		current, next = next, current
 	}
-	return *current
+	return current
 }
 
-func blink(currStoneSeq *[]int, nextStoneSeq *[]int) ([]int, []int) {
-	for i := 0; i < len(*currStoneSeq); i++ {
-		if (*currStoneSeq)[i] == 0 {
+// currStoneSeq may be just current batch
+func blink(currStoneSeq []int, nextStoneSeq *[]int) {
+	for i := 0; i < len(currStoneSeq); i++ {
+		if (currStoneSeq)[i] == 0 {
 			*nextStoneSeq = append(*nextStoneSeq, 1)
 			continue
 		}
-		strStone := strconv.Itoa((*currStoneSeq)[i])
+		strStone := strconv.Itoa((currStoneSeq)[i])
 		if len(strStone)%2 == 0 {
-			newStones := splitStone((*currStoneSeq)[i], len(strStone))
+			newStones := splitStone((currStoneSeq)[i], len(strStone))
 			*nextStoneSeq = append(*nextStoneSeq, newStones...)
 
 		} else {
-			newValue := (*currStoneSeq)[i] * multiplier
-			/*if !fitsUint16(newValue) {
-				if !fitsUint32(newValue) {
-					fmt.Println("Value bigger than 32bit: ", newValue)
-				}
-				fmt.Println("Value bigger than 16bit: ", newValue)
-			}*/
+			newValue := (currStoneSeq)[i] * multiplier
 			*nextStoneSeq = append(*nextStoneSeq, newValue)
 		}
 	}
-	return *nextStoneSeq, *currStoneSeq
 }
 
 func splitStone(stone int, stoneLength int) []int {
@@ -100,6 +97,35 @@ func splitStone(stone int, stoneLength int) []int {
 
 	stones := []int{stone1, stone2}
 	return stones
+}
+
+func countTotalElements(numbers []int, turnsTotal int) int {
+	total := 0
+	for _, number := range numbers {
+		total += dfsCount(number, turnsTotal)
+	}
+	return total
+}
+
+// dfsCount recursively processes a single number and counts its total contributions
+func dfsCount(stone int, turnsLeft int) int {
+	if turnsLeft == 0 {
+		return 1 // At the end, it counts as a single element
+	}
+	if stone == 0 {
+		// 0 turns into 1 in one step
+		return dfsCount(1, turnsLeft-1)
+	}
+
+	strStone := strconv.Itoa(stone)
+	if len(strStone)%2 == 0 {
+		// Even length: Split into two
+		newStones := splitStone(stone, len(strStone))
+		return dfsCount(newStones[0], turnsLeft-1) + dfsCount(newStones[1], turnsLeft-1)
+	} else {
+		// Odd length: Multiply
+		return dfsCount(stone*2024, turnsLeft-1)
+	}
 }
 
 // check how big stones get
