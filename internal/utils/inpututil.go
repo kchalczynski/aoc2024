@@ -44,6 +44,15 @@ func ReadIntoMatrixByCharacter(input string, linesCount int) [][]string {
 	return letterMatrix
 }
 
+func ReadAsNumberSeq(input string) []int {
+	numbers := make([]string, 0)
+
+	for _, val := range strings.Split(input, " ") {
+		numbers = append(numbers, val)
+	}
+	return StringsToInts(numbers)
+}
+
 func StringsToInts(input []string) []int {
 	result := make([]int, len(input))
 	for i, s := range input {

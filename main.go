@@ -3,6 +3,7 @@ package main
 import (
 	"aoc2024/puzzles/day1"
 	"aoc2024/puzzles/day10"
+	"aoc2024/puzzles/day11"
 	"aoc2024/puzzles/day2"
 	"aoc2024/puzzles/day3"
 	"aoc2024/puzzles/day4"
@@ -27,6 +28,7 @@ var problemMap = map[int]func(){
 	8:  day8.Solve,
 	9:  day9.Solve,
 	10: day10.Solve,
+	11: day11.Solve,
 }
 
 func main() {
