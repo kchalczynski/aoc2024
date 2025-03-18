@@ -13,6 +13,9 @@ import (
 	"aoc2024/puzzles/day8"
 	"aoc2024/puzzles/day9"
 	"fmt"
+	"log"
+	"net/http"
+	_ "net/http/pprof" // Register pprof handlers
 	"os"
 	"strconv"
 )
@@ -49,6 +52,10 @@ func main() {
 		}*/
 
 	if fn, exists := problemMap[day]; exists {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+
 		fn()
 	} else {
 		fmt.Println("Problem not implemented.")
