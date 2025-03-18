@@ -58,9 +58,10 @@ func blinkTimes(turns int, stoneSeq []int) []int {
 		for i := 0; i < len(*current); i += batchSize {
 			end := min(i+batchSize, len(*current))
 			*next = (*next)[:0]
-			newQ := (*current)[i:end]
-			*current, *next = blink(&newQ, (*next)[i:end])
-			*current, *next = blink((*current)[i:end], (*next)[i:end])
+			newCurrent := (*current)[i:end]
+			newNext := (*next)[i:end]
+			*current, *next = blink(&newCurrent, &newNext)
+			//*current, *next = blink((*current)[i:end], (*next)[i:end])
 		}
 	}
 	return *current
