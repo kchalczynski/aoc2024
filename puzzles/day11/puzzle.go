@@ -8,20 +8,23 @@ import (
 )
 
 // https://adventofcode.com/2024/day/11
-var multiplier int = 2024
+// Stones = numbers
+// Turns = blinks
+
+var multiplier = 2024
+var cache = make(map[string]int)
 
 func Solve() {
 	testNumber := 3
-	turns := 43
+	turns := 75
 	var inputFile = fmt.Sprintf("puzzles/day11/test%d.txt", testNumber)
 	inputContents, _ := utils.ReadFile(inputFile)
 
 	stoneSeq := utils.ReadAsNumberSeq(inputContents)
 	fmt.Println(stoneSeq)
 
-	//approximateMaxStoneValue(stoneSeq, multiplier, turns)
-
-	if turns < 35 {
+	// For Part 1 we can generate whole sequence of stones
+	if turns < 40 {
 		stoneSeq = blinkTimes(turns, stoneSeq)
 		fmt.Println(len(stoneSeq))
 	}
@@ -47,9 +50,15 @@ func approximateElementSize(initialValue int, turns int) float64 {
 	return float64(initialValue) * math.Pow(float64(multiplier), float64(turns))
 }
 
-// After approximately ~45 blinks/iterations we run out of memory.
-// Full array of generated stones takes ~6GB of RAM
+// After approximately ~45 turns/iterations we run out of memory.
+// Full array of generated stones takes ~6GB of RAM at this point.
+// Storing it on disk is not viable as it grows further,
+// but for Part2 we only need total count of stones after N turns
 func blinkTimes(turns int, stoneSeq []int) []int {
+
+	//	Tried to save memory by splitting input into chunks, working with two
+	//	slices only, processing it sequentially. Works fine for processing each part,
+	//	but resulting sequence becomes too big by ~turn 45 to store it in memory.
 	var bufferSize = int(math.Pow(2, float64(turns/10))) * len(stoneSeq)
 	var batchSize = 100000
 	current := make([]int, 0, bufferSize)
@@ -70,7 +79,7 @@ func blinkTimes(turns int, stoneSeq []int) []int {
 	return current
 }
 
-// currStoneSeq may be just current batch
+// currStoneSeq = current batch
 func blink(currStoneSeq []int, nextStoneSeq *[]int) {
 	for i := 0; i < len(currStoneSeq); i++ {
 		if (currStoneSeq)[i] == 0 {
@@ -107,31 +116,33 @@ func countTotalElements(numbers []int, turnsTotal int) int {
 	return total
 }
 
-// dfsCount recursively processes a single number and counts its total contributions
+// Recursively process a single stone and count total number of stones generated
 func dfsCount(stone int, turnsLeft int) int {
+
+	//	Last turn, count element as 1
 	if turnsLeft == 0 {
-		return 1 // At the end, it counts as a single element
+		return 1
 	}
+
+	//	Check if current stone value was previously computed
+	key := fmt.Sprintf("%d_%d", stone, turnsLeft)
+	if result, found := cache[key]; found {
+		return result
+	}
+
+	var result int
 	if stone == 0 {
-		// 0 turns into 1 in one step
-		return dfsCount(1, turnsLeft-1)
-	}
-
-	strStone := strconv.Itoa(stone)
-	if len(strStone)%2 == 0 {
-		// Even length: Split into two
-		newStones := splitStone(stone, len(strStone))
-		return dfsCount(newStones[0], turnsLeft-1) + dfsCount(newStones[1], turnsLeft-1)
+		result = dfsCount(1, turnsLeft-1)
 	} else {
-		// Odd length: Multiply
-		return dfsCount(stone*2024, turnsLeft-1)
+		strStone := strconv.Itoa(stone)
+		if len(strStone)%2 == 0 {
+			newStones := splitStone(stone, len(strStone))
+			result = dfsCount(newStones[0], turnsLeft-1) + dfsCount(newStones[1], turnsLeft-1)
+		} else {
+			result = dfsCount(stone*2024, turnsLeft-1)
+		}
 	}
-}
+	cache[key] = result
 
-// check how big stones get
-func fitsUint16(n int) bool {
-	return n >= 0 && n <= math.MaxUint16
-}
-func fitsUint32(n int) bool {
-	return n >= 0 && n <= math.MaxUint32
+	return result
 }
