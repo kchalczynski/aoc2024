@@ -6,9 +6,9 @@ import (
 	"slices"
 )
 
-func Solve() {
+func Solve(testFile string, params map[string]interface{}) {
 
-	var inputFile string = "input.txt"
+	var inputFile string = testFile
 	var searchPhrase string = "XMAS"
 	var inputContent string
 	var inputLinesCount int

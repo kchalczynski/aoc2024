@@ -10,7 +10,7 @@ import (
 var valMap = map[int][]int{}
 var availableOperators = []string{"+", "*", "||"}
 
-func Solve() {
+func Solve(testFile string, params map[string]interface{}) {
 	var inputFile = "puzzles/day7/test2.txt"
 	inputContent, inputLength := utils.ReadFile(inputFile)
 

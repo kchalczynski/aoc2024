@@ -14,10 +14,17 @@ import (
 var multiplier = 2024
 var cache = make(map[string]int)
 
-func Solve() {
-	testNumber := 3
-	turns := 75
-	var inputFile = fmt.Sprintf("puzzles/day11/test%d.txt", testNumber)
+// Solve function extracts "iterations" as "turns" if available
+func Solve(testFile string, params map[string]interface{}) {
+	// Default iterations value
+	turns := 25
+
+	// Override if provided
+	if val, ok := params["iterations"].(int); ok {
+		turns = val
+	}
+
+	var inputFile = fmt.Sprintf("puzzles/day11/%s", testFile)
 	inputContents, _ := utils.ReadFile(inputFile)
 
 	stoneSeq := utils.ReadAsNumberSeq(inputContents)

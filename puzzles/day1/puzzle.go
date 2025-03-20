@@ -9,12 +9,12 @@ import (
 	"strings"
 )
 
-func Solve() {
+func Solve(testFile string, params map[string]interface{}) {
 
-	col1 := []int{}
-	col2 := []int{}
+	var col1 []int
+	var col2 []int
 
-	col1, col2 = readFileIntoLists(col1, col2)
+	col1, col2 = readFileIntoLists(testFile, col1, col2)
 	fmt.Println(col1)
 	fmt.Println(col2)
 
@@ -39,27 +39,26 @@ func Solve() {
 	// part 2 solution
 
 	var similarity int = 0
-	occurenceMap := make(map[int]int)
-
+	occurrenceMap := make(map[int]int)
 	for _, element := range col2 {
-		if occurenceMap[element] == 0 {
-			occurenceMap[element] = 1
+		if occurrenceMap[element] == 0 {
+			occurrenceMap[element] = 1
 		} else {
-			occurenceMap[element] += 1
+			occurrenceMap[element] += 1
 		}
 	}
 
 	for _, element := range col1 {
-		if occurenceMap[element] != 0 {
-			similarity += element * occurenceMap[element]
+		if occurrenceMap[element] != 0 {
+			similarity += element * occurrenceMap[element]
 		}
 	}
 
 	fmt.Println(similarity)
 }
 
-func readFileIntoLists(l1 []int, l2 []int) ([]int, []int) {
-	file, err := os.Open("input.txt")
+func readFileIntoLists(fileName string, l1 []int, l2 []int) ([]int, []int) {
+	file, err := os.Open(fileName)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 		return nil, nil

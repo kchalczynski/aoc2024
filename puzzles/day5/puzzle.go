@@ -14,10 +14,20 @@ import (
 
 import "github.com/kr/pretty"
 
-func Solve() {
+func Solve(testFile string, params map[string]interface{}) {
 
-	inputFile := "./input.txt"
-	outputFile, err := os.Create("./output.txt")
+	inputFile := fmt.Sprintf("./%s", testFile)
+
+	// Default output file name
+	output := "output.txt"
+
+	// Override if provided
+	if val, ok := params["output"].(string); ok {
+		output = val
+	}
+
+	outputFile, err := os.Create(fmt.Sprintf("./%s", output))
+
 	if err != nil {
 		fmt.Println("Failed to create file: ", err)
 		return

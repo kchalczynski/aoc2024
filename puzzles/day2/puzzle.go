@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-func Solve() {
+func Solve(testFile string, params map[string]interface{}) {
 
-	var inputFile string = "input.txt"
+	var inputFile string = testFile
 	var safeCounter int = 0
 	var conditionalSafeCounter int = 0
 

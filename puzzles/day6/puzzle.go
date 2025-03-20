@@ -25,9 +25,9 @@ Task list:
 
 var BaseRoom Area
 
-func Solve() {
+func Solve(testFile string, params map[string]interface{}) {
 
-	var inputFile = "input.txt"
+	var inputFile = testFile
 	var inputContent string
 	var inputLinesCount int
 

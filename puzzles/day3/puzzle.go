@@ -8,9 +8,9 @@ import (
 	"strconv"
 )
 
-func Solve() {
+func Solve(testFile string, params map[string]interface{}) {
 
-	var inputFile string = "input.txt"
+	var inputFile string = testFile
 	var inputContent string = readFile(inputFile)
 	operandTupleList := cleanInput(inputContent)
 

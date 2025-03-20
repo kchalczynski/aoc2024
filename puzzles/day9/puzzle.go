@@ -9,9 +9,8 @@ import (
 
 var emptySpace = "."
 
-func Solve() {
-	testNumber := 2
-	var inputFile = fmt.Sprintf("puzzles/day9/test%d.txt", testNumber)
+func Solve(testFile string, params map[string]interface{}) {
+	var inputFile = fmt.Sprintf("puzzles/day9/%s", testFile)
 	inputContent, _ := utils.ReadFile(inputFile)
 
 	decodedInput := decodeInput(inputContent)

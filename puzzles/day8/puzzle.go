@@ -9,14 +9,9 @@ import (
 
 var isPart2 = false
 
-func Solve( /*testNumber int*/ ) {
+func Solve(testFile string, params map[string]interface{}) {
 
-	// FIXME: test number passed as an argument to Solve func call in main()
-	testNumber := 2
-	if testNumber == 0 {
-		testNumber = 1
-	}
-	var inputFile = fmt.Sprintf("puzzles/day8/test%d.txt", testNumber)
+	var inputFile = fmt.Sprintf("puzzles/day8/%s", testFile)
 
 	inputContent, lineCount := utils.ReadFile(inputFile)
 

@@ -12,15 +12,14 @@ import (
 	"aoc2024/puzzles/day7"
 	"aoc2024/puzzles/day8"
 	"aoc2024/puzzles/day9"
+	"flag"
 	"fmt"
-	"log"
-	"net/http"
 	_ "net/http/pprof" // Register pprof handlers
 	"os"
 	"strconv"
 )
 
-var problemMap = map[int]func(){
+var solvers = map[int]func(string, map[string]interface{}){
 	1:  day1.Solve,
 	2:  day2.Solve,
 	3:  day3.Solve,
@@ -35,29 +34,53 @@ var problemMap = map[int]func(){
 }
 
 func main() {
+
+	// Define flags for optional parameters
+	testFileNumber := flag.String("test", "", "Specify which test file to use (e.g., --test 2 for test2.txt)")
+	iterations := flag.Int("iterations", -1, "Specify number of iterations (used only in some puzzles)")
+	output := flag.String("output", "", "Specify output file name (used only in some puzzles)")
+	flag.Parse()
+
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run . <day number>")
 		return
 	}
 
-	day, err := strconv.Atoi(os.Args[1])
-	if err != nil || day < 1 || day > 25 {
-		fmt.Println("Invalid day number. Please enter a number between 1 and 25.")
+	args := flag.Args()
+
+	if len(args) < 1 {
+		fmt.Println("Usage: go run . <day_number> [--test N] [--iterations X] [--output Y]")
+		return
 	}
 
-	// TODO: number of test input to use as second argument
-	/*	test, err := strconv.Atoi(os.Args[2])
-		if err != nil || test < 1 || day > 25 {
-			fmt.Println("Invalid test number. Please enter a number between 1 and X.")
-		}*/
+	day, _ := strconv.Atoi(args[0])
+	solveFunc, exists := solvers[day]
+	if !exists {
+		fmt.Printf("No puzzle found for Day %s\n", day)
+		return
+	}
 
-	if fn, exists := problemMap[day]; exists {
-		go func() {
-			log.Println(http.ListenAndServe("localhost:6060", nil))
-		}()
-
-		fn()
+	// If testFileNumber is empty, Solve() will handle the default internally
+	testFile := ""
+	defaultTestFile := "test1.txt"
+	if *testFileNumber != "" {
+		testFile = fmt.Sprintf("test%s.txt", *testFileNumber)
 	} else {
-		fmt.Println("Problem not implemented.")
+		testFile = defaultTestFile
 	}
+
+	params := make(map[string]interface{})
+
+	// Only pass "iterations" if explicitly provided
+	if *iterations != -1 {
+		params["iterations"] = *iterations
+	}
+
+	// Only pass "output" if explicitly provided
+	if *output != "" {
+		params["output"] = *output
+	}
+
+	// Call the Solve function with test file and optional parameters
+	solveFunc(testFile, params)
 }
