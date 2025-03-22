@@ -11,7 +11,7 @@ var valMap = map[int][]int{}
 var availableOperators = []string{"+", "*", "||"}
 
 func Solve(testFile string, params map[string]interface{}) {
-	var inputFile = "puzzles/day7/test2.txt"
+	var inputFile = testFile
 	inputContent, inputLength := utils.ReadFile(inputFile)
 
 	valMap = splitInputToMap(utils.SplitStringByLines(inputContent))

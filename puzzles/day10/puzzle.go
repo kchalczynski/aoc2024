@@ -18,7 +18,7 @@ var directions = []struct{ dy, dx int }{
 }
 
 func Solve(testFile string, params map[string]interface{}) {
-	var inputFile = fmt.Sprintf("puzzles/day10/%s", testFile)
+	var inputFile = testFile
 	inputContents, linesCount := utils.ReadFile(inputFile)
 
 	var grid Grid = convertInputToPosition(utils.ReadIntoMatrixByCharacter(inputContents, linesCount))

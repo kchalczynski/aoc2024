@@ -11,7 +11,7 @@ var isPart2 = false
 
 func Solve(testFile string, params map[string]interface{}) {
 
-	var inputFile = fmt.Sprintf("puzzles/day8/%s", testFile)
+	var inputFile = testFile
 
 	inputContent, lineCount := utils.ReadFile(inputFile)
 

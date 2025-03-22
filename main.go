@@ -33,27 +33,64 @@ var solvers = map[int]func(string, map[string]interface{}){
 	11: day11.Solve,
 }
 
+var dayNumber int
+var testFileNumber int
+var iterations int
+var output string
+
+func init() {
+	// Define flags for optional parameters
+	flag.IntVar(&dayNumber, "day", -1, "Specify which day puzzle to solve (e.g., -d 2 or --day 2 for day2)")
+	flag.IntVar(&dayNumber, "d", -1, "Alias for --day")
+	flag.IntVar(&testFileNumber, "test", -1, "Specify which test file to use (e.g., --test 2 for test2.txt)")
+	flag.IntVar(&testFileNumber, "t", -1, "Alias for --test")
+	flag.IntVar(&iterations, "iterations", -1, "Specify number of iterations (used only in some puzzles)")
+	flag.IntVar(&iterations, "i", -1, "Alias for --iterations")
+	flag.StringVar(&output, "output", "", "Specify output file name (used only in some puzzles)")
+	flag.StringVar(&output, "o", "", "Alias for --output")
+
+}
+
 func main() {
 
-	// Define flags for optional parameters
-	testFileNumber := flag.String("test", "", "Specify which test file to use (e.g., --test 2 for test2.txt)")
-	iterations := flag.Int("iterations", -1, "Specify number of iterations (used only in some puzzles)")
-	output := flag.String("output", "", "Specify output file name (used only in some puzzles)")
+	fmt.Println("Raw Args:", os.Args)
+
+	//w Workaround to parse flags after first arg
 	flag.Parse()
 
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run . <day number>")
-		return
-	}
+	// Print parsed flag values (for debugging)
+	fmt.Println("Parsed Flags:")
+	fmt.Println("  -t/--test:", testFileNumber)
+	fmt.Println("  -d/--day:", dayNumber)
+	fmt.Println("  -i/--iterations:", iterations)
+	fmt.Println("  -o/--output:", output)
 
-	args := flag.Args()
+	args := flag.CommandLine.Args()
+	fmt.Println(args)
 
+	var day int
 	if len(args) < 1 {
-		fmt.Println("Usage: go run . <day_number> [--test N] [--iterations X] [--output Y]")
-		return
+		if dayNumber == -1 {
+			fmt.Println("Usage: go run . [-d N]/[--day N] [--test N] [--iterations X] [--output Y] day_number" +
+				" [optional, can be specified via flag -d/--day or argument]")
+			fmt.Println("Day number must be specified either via \"-d\" or \"--day\", or explicitely (after flags)")
+			return
+		} else {
+			day = dayNumber
+		}
+	} else {
+		dayArg, err := strconv.Atoi(args[0])
+		if err != nil {
+			fmt.Printf("Invalid day number %s\n", args[0])
+			return
+		} else {
+			day = dayArg
+		}
 	}
 
-	day, _ := strconv.Atoi(args[0])
+	// Print day number (for debugging)
+	fmt.Println("Day argument:", day)
+
 	solveFunc, exists := solvers[day]
 	if !exists {
 		fmt.Printf("No puzzle found for Day %s\n", day)
@@ -61,24 +98,25 @@ func main() {
 	}
 
 	// If testFileNumber is empty, Solve() will handle the default internally
-	testFile := ""
-	defaultTestFile := "test1.txt"
-	if *testFileNumber != "" {
-		testFile = fmt.Sprintf("test%s.txt", *testFileNumber)
-	} else {
-		testFile = defaultTestFile
+	testFile := fmt.Sprintf("puzzles/day%d/test1.txt", day)
+
+	if testFileNumber != -1 {
+		testFile = fmt.Sprintf("puzzles/day%d/test%d.txt", day, testFileNumber)
 	}
+
+	// Print final test file selection (for debugging)
+	fmt.Println("Test file selected:", testFile)
 
 	params := make(map[string]interface{})
 
 	// Only pass "iterations" if explicitly provided
-	if *iterations != -1 {
-		params["iterations"] = *iterations
+	if iterations != -1 {
+		params["iterations"] = iterations
 	}
 
 	// Only pass "output" if explicitly provided
-	if *output != "" {
-		params["output"] = *output
+	if output != "" {
+		params["output"] = output
 	}
 
 	// Call the Solve function with test file and optional parameters

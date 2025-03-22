@@ -11,33 +11,54 @@ import (
 // Stones = numbers
 // Turns = blinks
 
+// Default iterations value
+var turns = 25
 var multiplier = 2024
+
 var cache = make(map[string]int)
+
+var cacheRetrieveCount = 0
+var totalRecursiveCallCount = 0
+var cachedPerTurn = make(map[int]int)
+var recursiveCallsPerTurn = make(map[int]int)
+
+func initBenchmarkMap(turns int, benchmarkMap map[int]int) {
+	for i := 0; i < turns; i++ {
+		benchmarkMap[i] = 0
+	}
+}
 
 // Solve function extracts "iterations" as "turns" if available
 func Solve(testFile string, params map[string]interface{}) {
-	// Default iterations value
-	turns := 25
 
 	// Override if provided
 	if val, ok := params["iterations"].(int); ok {
 		turns = val
 	}
 
-	var inputFile = fmt.Sprintf("puzzles/day11/%s", testFile)
+	var inputFile = testFile
 	inputContents, _ := utils.ReadFile(inputFile)
 
 	stoneSeq := utils.ReadAsNumberSeq(inputContents)
 	fmt.Println(stoneSeq)
 
 	// For Part 1 we can generate whole sequence of stones
-	if turns < 40 {
+	if turns < 10 {
 		stoneSeq = blinkTimes(turns, stoneSeq)
 		fmt.Println(len(stoneSeq))
+	} else {
+		initBenchmarkMap(turns, cachedPerTurn)
+		initBenchmarkMap(turns, recursiveCallsPerTurn)
+		totalElements := countTotalElements(stoneSeq, turns)
+		fmt.Println("Total elements after", turns, "turns:", totalElements)
+		for i := 0; i < turns; i++ {
+			fmt.Println(fmt.Sprintf("Turn %d: Cached %d/%d total cache calls;"+
+				" %d/%d recursive calls out of total.",
+				i, cachedPerTurn[i], cacheRetrieveCount, recursiveCallsPerTurn[i], totalRecursiveCallCount))
+
+		}
 	}
 
-	totalElements := countTotalElements(stoneSeq, turns)
-	fmt.Println("Total elements after", turns, "turns:", totalElements)
 }
 
 // Approximate max size of stones.
@@ -126,6 +147,7 @@ func countTotalElements(numbers []int, turnsTotal int) int {
 // Recursively process a single stone and count total number of stones generated
 func dfsCount(stone int, turnsLeft int) int {
 
+	currentTurn := turns - turnsLeft
 	//	Last turn, count element as 1
 	if turnsLeft == 0 {
 		return 1
@@ -134,7 +156,12 @@ func dfsCount(stone int, turnsLeft int) int {
 	//	Check if current stone value was previously computed
 	key := fmt.Sprintf("%d_%d", stone, turnsLeft)
 	if result, found := cache[key]; found {
+		cacheRetrieveCount += 1
+		cachedPerTurn[currentTurn] += 1
 		return result
+	} else {
+		totalRecursiveCallCount += 1
+		recursiveCallsPerTurn[currentTurn] += 1
 	}
 
 	var result int

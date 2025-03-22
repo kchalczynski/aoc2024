@@ -10,7 +10,7 @@ import (
 var emptySpace = "."
 
 func Solve(testFile string, params map[string]interface{}) {
-	var inputFile = fmt.Sprintf("puzzles/day9/%s", testFile)
+	var inputFile = testFile
 	inputContent, _ := utils.ReadFile(inputFile)
 
 	decodedInput := decodeInput(inputContent)
